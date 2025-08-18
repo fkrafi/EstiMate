@@ -1,0 +1,25 @@
+# React Native
+node_modules/
+android/
+ios/
+*.log
+*.keystore
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.xcuserstate
+*.xcworkspace
+*.xcodeproj
+*.idea/
+*.gradle/
+build/
+.env
+.env.*
+
+# VSCode
+.vscode/
+.history/
+.settings/
+*.code-workspace

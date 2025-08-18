@@ -1,0 +1,147 @@
+import React, { useState } from 'react';
+import { View, Text, TextInput, Pressable, StyleSheet } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { useUser } from '../contexts/UserContext';
+
+export default function JoinRoom() {
+  const [roomIdInput, setRoomIdInput] = useState('');
+  const { setRoomId } = useUser();
+  const router = useRouter();
+
+  const handleJoin = () => {
+    setRoomId(roomIdInput);
+    router.push('/estimate-board');
+  };
+
+  const handleScan = () => {
+    // TODO: Implement QR scan logic
+  };
+
+  const handleBack = () => {
+    router.back();
+  };
+
+  return (
+    <View style={styles.container}>
+      <View style={styles.card}>
+        <MaterialCommunityIcons name="qrcode-scan" size={40} color="#6c63ff" style={styles.scanIcon} />
+        <Text style={styles.header}>Join Room</Text>
+        <Pressable style={styles.qrButton} onPress={handleScan}>
+          <MaterialCommunityIcons name="qrcode" size={28} color="#6c63ff" />
+          <Text style={styles.qrButtonText}>Enter the room ID or scan QR code</Text>
+        </Pressable>
+        <TextInput
+          style={styles.input}
+          placeholder="Enter room ID"
+          value={roomIdInput}
+          onChangeText={setRoomIdInput}
+          autoCapitalize="characters"
+          maxLength={12}
+        />
+        <Pressable
+          style={({ pressed }) => [
+            styles.joinButton,
+            (!roomIdInput || roomIdInput.length < 4) && styles.buttonDisabled,
+            pressed && roomIdInput && roomIdInput.length >= 4 && styles.buttonPressed,
+          ]}
+          onPress={handleJoin}
+          disabled={!roomIdInput || roomIdInput.length < 4}
+        >
+          <Text style={styles.joinButtonText}>Join Room</Text>
+        </Pressable>
+        <Pressable style={styles.backButton} onPress={handleBack}>
+          <MaterialCommunityIcons name="arrow-left" size={18} color="#6c63ff" />
+          <Text style={styles.backButtonText}>Back</Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f7f7fa',
+  },
+  card: {
+    width: 340,
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 24,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+    alignItems: 'center',
+  },
+  scanIcon: {
+    marginBottom: 8,
+  },
+  header: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#222',
+    marginBottom: 12,
+  },
+  qrButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f0f0ff',
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    marginBottom: 16,
+  },
+  qrButtonText: {
+    marginLeft: 8,
+    color: '#6c63ff',
+    fontSize: 15,
+    fontWeight: '500',
+  },
+  input: {
+    width: '100%',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    marginBottom: 18,
+    backgroundColor: '#fafaff',
+    letterSpacing: 1.2,
+    textAlign: 'center',
+  },
+  joinButton: {
+    width: '100%',
+    backgroundColor: '#6c63ff',
+    borderRadius: 8,
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  joinButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  buttonDisabled: {
+    backgroundColor: '#bdbdbd',
+  },
+  buttonPressed: {
+    opacity: 0.8,
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  backButtonText: {
+    color: '#6c63ff',
+    fontSize: 15,
+    marginLeft: 4,
+    fontWeight: '500',
+  },
+});
