@@ -18,6 +18,10 @@ build/
 .env
 .env.*
 
+# Expo
+.expo/
+.expo-shared/
+
 # VSCode
 .vscode/
 .history/
