@@ -1,7 +1,7 @@
-import React from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
-import { MaterialCommunityIcons, Ionicons, FontAwesome6, FontAwesome5 } from '@expo/vector-icons';
+import { FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import React from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useUser } from '../contexts/UserContext';
 
 export default function SelectProfile() {
@@ -31,7 +31,6 @@ export default function SelectProfile() {
     </View>
   );
 }
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -60,10 +59,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
     borderRadius: 8,
     marginBottom: 18,
-    // width: '100%',
+    width: '100%',
     justifyContent: 'center',
     elevation: 2,
-    alignSelf: 'stretch', // Added to make button full width
+    gap: 12,
   },
   hostButton: {
     backgroundColor: '#f59e42',
@@ -77,13 +76,12 @@ const styles = StyleSheet.create({
   participantButtonPressed: {
     backgroundColor: '#2563eb',
   },
-  // ...existing code...
   card: {
     backgroundColor: '#fff',
     borderRadius: 18,
     padding: 28,
     alignItems: 'center',
-    width: 320,
+    width: '100%',
     shadowColor: '#000',
     shadowOpacity: 0.08,
     shadowRadius: 12,
@@ -98,5 +96,5 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     letterSpacing: 1,
-  }
+  },
 });

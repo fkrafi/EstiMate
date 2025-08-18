@@ -26,10 +26,16 @@ EstiMate is a beautifully designed, easy-to-use Scrum Poker app for agile teams.
 
 ## Screenshots
 
-*Add screenshots here to showcase the app UI and features.*
+<p align="center">
+    <img src="assets/screenshots/home.jpeg" alt="Home" width="150"/>
+    <img src="assets/screenshots/select-profile.jpeg" alt="Select Profile" width="150"/>
+    <img src="assets/screenshots/host.jpeg" alt="Host" width="150"/>
+    <img src="assets/screenshots/join.jpeg" alt="Join" width="150"/>
+    <img src="assets/screenshots/estimation-board.jpeg" alt="Estimation Board" width="150"/>
+</p>
 
 ## Support & Feedback
-We love hearing from teams! For support, feedback, or feature requests, contact us at [your-email@example.com].
+We love hearing from teams! For support, feedback, or feature requests, contact us at [aboutrafi@gmail.com].
 
 ---
 

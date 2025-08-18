@@ -1,9 +1,9 @@
 
-import { useUser } from '../contexts/UserContext';
 import { useEffect, useState } from 'react';
+import { useUser } from '../contexts/UserContext';
 
-import { View, Text, StyleSheet, FlatList, Image } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 const PARTICIPANTS = [
   { id: '1', name: 'Alice', points: 1 },
@@ -91,25 +91,29 @@ export default function HostDashboard() {
               opacity: PARTICIPANTS.every(p => p.points > 0) ? 1 : 0.6,
             }}
           >
-            <Text
-              style={{
-                color: '#fff',
-                fontWeight: 'bold',
-                fontSize: 16,
-                textAlign: 'center',
-              }}
+            <TouchableOpacity
+              disabled={!PARTICIPANTS.every(p => p.points > 0)}
               onPress={() => {
                 setParticipants(participants.map(p => ({ ...p, points: 0 })));
                 setRound(round + 1);
-              }}>
-                {/* Make button always clickable, but only enable color when all have estimated */}
-                {/* Optionally, you can show a warning if pressed too early */}
-                {PARTICIPANTS.some(p => p.points === 0) && (
-                  <Text style={{ color: '#ff9800', marginTop: 4 }}>
-                    Please wait for all participants to submit their estimates.
-                  </Text>
-                )}
+              }}
+              style={{
+                alignItems: 'center',
+                 width: '100%',
+                 opacity: PARTICIPANTS.every(p => p.points > 0) ? 1 : 0.6,
+              }}
+            >
+              <Text
+                style={{
+                  color: '#fff',
+                  fontWeight: 'bold',
+                  fontSize: 16,
+                  textAlign: 'center',
+                }}
+              >
+                Start Another Round
               </Text>
+            </TouchableOpacity>
           </View>
         </View>
       </View>
