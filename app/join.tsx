@@ -25,12 +25,17 @@ export default function JoinRoom() {
   return (
     <View style={styles.container}>
       <View style={styles.card}>
-        <MaterialCommunityIcons name="qrcode-scan" size={40} color="#6c63ff" style={styles.scanIcon} />
+        <MaterialCommunityIcons name="account-multiple-plus" size={40} color="#6c63ff" style={styles.scanIcon} />
         <Text style={styles.header}>Join Room</Text>
-        <Pressable style={styles.qrButton} onPress={handleScan}>
-          <MaterialCommunityIcons name="qrcode" size={28} color="#6c63ff" />
-          <Text style={styles.qrButtonText}>Enter the room ID or scan QR code</Text>
+        <Pressable style={[styles.qrButton, { width: '100%', justifyContent: 'center', backgroundColor: '#6c63ff' }]} onPress={handleScan}>
+          <MaterialCommunityIcons name="qrcode" size={28} color="#fff" />
+          <Text style={[styles.qrButtonText, { color: '#fff' }]}>Scan QR code</Text>
         </Pressable>
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 10, width: '100%' }}>
+          <View style={{ flex: 1, height: 1, backgroundColor: '#e0e0e0' }} />
+          <Text style={{ marginHorizontal: 12, color: '#888', fontWeight: '500' }}>OR</Text>
+          <View style={{ flex: 1, height: 1, backgroundColor: '#e0e0e0' }} />
+        </View>
         <TextInput
           style={styles.input}
           placeholder="Enter room ID"

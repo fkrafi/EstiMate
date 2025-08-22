@@ -22,15 +22,49 @@ export default function EstimateBoard() {
         <Text style={styles.greeting}>Hello, <Text style={styles.bold}>{name || 'Guest'}</Text>!</Text>
         <Text style={styles.selectLabel}>Select your estimation</Text>
         <View style={styles.fibGrid}>
-          {FIB_NUMBERS.map(num => (
-            <Pressable
-              key={num}
-              style={[styles.fibButton, selected === num && styles.fibButtonSelected]}
-              onPress={() => setSelected(num)}
-            >
-              <Text style={[styles.fibText, selected === num && styles.fibTextSelected]}>{num}</Text>
-            </Pressable>
-          ))}
+          {Array.from({ length: Math.ceil(FIB_NUMBERS.length / 4) }).map((_, rowIdx) => {
+            const rowNumbers = FIB_NUMBERS.slice(rowIdx * 4, rowIdx * 4 + 4);
+            return (
+                <View key={rowNumbers[0]} style={{ flexDirection: 'row', justifyContent: 'center', marginBottom: 10 }}>
+                {rowNumbers.map(num => (
+                  <Pressable
+                  key={num}
+                  style={[
+                    {
+                    width: 55,
+                    height: 75,
+                    marginHorizontal: 6,
+                    backgroundColor: selected === num ? '#6c63ff' : '#fff',
+                    borderRadius: 8,
+                    borderWidth: 2,
+                    borderColor: selected === num ? '#6c63ff' : '#bbb',
+                    shadowColor: '#000',
+                    shadowOpacity: 0.10,
+                    shadowRadius: 4,
+                    shadowOffset: { width: 0, height: 2 },
+                    elevation: 2,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    },
+                  ]}
+                  onPress={() => setSelected(num)}
+                  >
+                  <Text style={{
+                    fontSize: 28,
+                    color: selected === num ? '#fff' : '#6c63ff',
+                    fontWeight: 'bold',
+                    fontFamily: 'Menlo',
+                    textShadowColor: selected === num ? '#4b47b6' : '#eee',
+                    textShadowOffset: { width: 1, height: 1 },
+                    textShadowRadius: 2,
+                  }}>
+                    {num}
+                  </Text>
+                  </Pressable>
+                ))}
+                </View>
+            );
+          })}
         </View>
         <Pressable
           style={({ pressed }) => [
@@ -41,7 +75,9 @@ export default function EstimateBoard() {
           onPress={handleSubmit}
           disabled={selected === null}
         >
-          <Text style={styles.submitButtonText}>Submit Estimation</Text>
+          <Text style={[styles.submitButtonText, { color: '#222', fontSize: 18, fontWeight: 'bold', letterSpacing: 1 }]}>
+            🂠 Submit Estimation
+          </Text>
         </Pressable>
       </View>
     </View>
