@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, Pressable, StyleSheet } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import React, { useState } from 'react';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useUser } from '../contexts/UserContext';
 
 export default function JoinRoom() {
@@ -15,7 +15,8 @@ export default function JoinRoom() {
   };
 
   const handleScan = () => {
-    // TODO: Implement QR scan logic
+    // Navigate to QR scanner; handle scannedRoomId via context or navigation result
+    router.push('/estimate-board');
   };
 
   const handleBack = () => {

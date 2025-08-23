@@ -1,14 +1,15 @@
 
 import { useEffect, useState } from 'react';
+import Zeroconf from 'react-native-zeroconf';
 import { useUser } from '../contexts/UserContext';
 
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-const PARTICIPANTS = [
-  { id: '1', name: 'Alice', points: 1 },
-  { id: '2', name: 'Bob', points: 2 },
-  { id: '3', name: 'Charlie', points: 3 },
+const INITIAL_PARTICIPANTS = [
+  { id: '1', name: 'Alice', points: 0 },
+  { id: '2', name: 'Bob', points: 0 },
+  { id: '3', name: 'Charlie', points: 0 },
 ];
 
 function generateRoomId() {
@@ -23,14 +24,38 @@ function generateRoomId() {
 
 export default function HostDashboard() {
   const { roomId, setRoomId } = useUser();
-  const [participants, setParticipants] = useState(PARTICIPANTS);
+  const [participants, setParticipants] = useState(INITIAL_PARTICIPANTS);
   const [round, setRound] = useState(1);
+  const [canStartRound, setCanStartRound] = useState(true);
+
 
   useEffect(() => {
     if (!roomId) {
       setRoomId(generateRoomId());
     }
+    // Advertise this device as a host using Bonjour/mDNS
+    const zeroconf = new Zeroconf();
+    zeroconf.publishService(
+      'estimate', // service name
+      'http',     // service type (can be custom, e.g. 'estimate')
+      'local.',   // domain
+      '42424',    // port (must be a string)
+      undefined,  // no host
+      { txtRecord: { roomId: roomId || '' } } // options with txtRecord
+    );
+    console.log('Zeroconf service published for room:', roomId);
+    // Clean up
+    return () => {
+      zeroconf.stop();
+    };
   }, [roomId, setRoomId]);
+
+  // Simulate receiving estimations from participants
+  useEffect(() => {
+    if (!canStartRound && participants.every(p => p.points > 0)) {
+      setCanStartRound(true);
+    }
+  }, [participants, canStartRound]);
 
   const displayRoomId = roomId || '--------';
 
@@ -57,7 +82,7 @@ export default function HostDashboard() {
         </View>
         <Text style={styles.participantsHeader}>Participants</Text>
         <FlatList
-          data={PARTICIPANTS}
+          data={participants}
           keyExtractor={item => item.id}
           renderItem={({ item, index }) => (
             <View
@@ -75,32 +100,33 @@ export default function HostDashboard() {
           style={styles.participantsList}
         />
         <View style={{ marginTop: 16, alignItems: 'center' }}>
-          {/* Simulate: if all participants have estimated, enable button. Here, all are false so disabled */}
-          {/* Replace this logic with your own estimation check */}
-          {PARTICIPANTS.every(p => p.points > 0) ? (
+          {canStartRound ? (
             <Text style={{ color: '#4caf50', marginBottom: 8 }}>Ready for next round!</Text>
           ) : (
             <Text style={{ color: '#888', marginBottom: 8 }}>Waiting for all estimates...</Text>
           )}
           <View
             style={{
-              backgroundColor: PARTICIPANTS.every(p => p.points > 0) ? '#1976d2' : '#bdbdbd',
+              backgroundColor: canStartRound ? '#1976d2' : '#bdbdbd',
               borderRadius: 8,
               paddingVertical: 10,
               paddingHorizontal: 32,
-              opacity: PARTICIPANTS.every(p => p.points > 0) ? 1 : 0.6,
+              opacity: canStartRound ? 1 : 0.6,
             }}
           >
             <TouchableOpacity
-              disabled={!PARTICIPANTS.every(p => p.points > 0)}
+              disabled={!canStartRound}
               onPress={() => {
+                // Simulate sending notification to participants to start estimation
                 setParticipants(participants.map(p => ({ ...p, points: 0 })));
                 setRound(round + 1);
+                setCanStartRound(false);
+                // In a real app, send a signal to all participants here
               }}
               style={{
                 alignItems: 'center',
-                 width: '100%',
-                 opacity: PARTICIPANTS.every(p => p.points > 0) ? 1 : 0.6,
+                width: '100%',
+                opacity: canStartRound ? 1 : 0.6,
               }}
             >
               <Text
