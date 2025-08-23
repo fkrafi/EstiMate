@@ -36,12 +36,12 @@ export default function HostDashboard() {
     // Advertise this device as a host using Bonjour/mDNS
     const zeroconf = new Zeroconf();
     zeroconf.publishService(
-      'estimate', // service name
-      'http',     // service type (can be custom, e.g. 'estimate')
-      'local.',   // domain
-      '42424',    // port (must be a string)
-      undefined,  // no host
-      { txtRecord: { roomId: roomId || '' } } // options with txtRecord
+      'http',           // type
+      'tcp',            // protocol
+      'local.',         // domain
+      'estimate',       // name
+      42424,            // port (number)
+      { roomId: roomId || '' } // txt record
     );
     console.log('Zeroconf service published for room:', roomId);
     // Clean up

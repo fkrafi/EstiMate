@@ -3,8 +3,6 @@ import Zeroconf from 'react-native-zeroconf';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useUser } from '../contexts/UserContext';
 
-const ROOM_ID = 'ABCD1234';
-const ROUND_NUMBER = 1;
 const FIB_NUMBERS = [0, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89];
 
 export default function EstimateBoard() {
@@ -15,24 +13,42 @@ export default function EstimateBoard() {
   const [canEstimate, setCanEstimate] = useState(false);
   const [estimationSubmitted, setEstimationSubmitted] = useState(false);
 
+  // Helper functions to reduce nesting in useEffect
+  const startEstimation = () => {
+    setCanEstimate(true);
+  };
+
+  const connectToHost = () => {
+    setConnected(true);
+    // Simulate host sending signal to start estimation
+    setTimeout(startEstimation, 1000);
+  };
 
   // Discover host by roomId using Zeroconf
   useEffect(() => {
     if (!roomId) return;
     const zeroconf = new Zeroconf();
     const handleResolved = (service: any) => {
-      if (service.txt && service.txt.roomId === roomId) {
+      console.log('Resolved ::', service);
+      // Show as toast instead of console.log
+      if (
+        typeof global !== 'undefined' &&
+        (global as any)?.ToastAndroid
+      ) {
+        (global as any).ToastAndroid.show(
+          `Resolved: ${JSON.stringify(service)}`,
+          (global as any).ToastAndroid.SHORT
+        );
+      }
+      if (service.txt?.roomId === roomId) {
         setHostFound(true);
+        
         // Simulate connection after discovery
-        setTimeout(() => {
-          setConnected(true);
-          // Simulate host sending signal to start estimation
-          setTimeout(() => setCanEstimate(true), 1000);
-        }, 1000);
+        setTimeout(connectToHost, 1000);
       }
     };
     zeroconf.on('resolved', handleResolved);
-    zeroconf.scan('http', 'local.');
+    zeroconf.scan('http', 'tcp', 'local.');
     return () => {
       zeroconf.stop();
       zeroconf.removeDeviceListeners();
