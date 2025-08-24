@@ -1,6 +1,7 @@
 
 
 import { useEffect, useRef, useState } from 'react';
+import Toast from 'react-native-toast-message';
 import { useRouter } from 'expo-router';
 import Zeroconf from 'react-native-zeroconf';
 import { useUser } from '../contexts/UserContext';
@@ -27,8 +28,11 @@ export default function HostDashboard() {
   const [canStartRound, setCanStartRound] = useState<boolean>(true);
   const zeroconfRef = useRef<any>(null);
 
+  // const __DEV__ = process.env.NODE_ENV !== 'production';
+
   useEffect(() => {
     if (!roomId) {
+      Toast.show({ type: 'info', text1: 'Generating new roomId' });
       setRoomId(generateRoomId());
     }
     // Always ensure participants are initialized
@@ -39,6 +43,7 @@ export default function HostDashboard() {
     // Advertise this device as a host using Bonjour/mDNS
     const zeroconf = new Zeroconf();
     zeroconfRef.current = zeroconf;
+    Toast.show({ type: 'info', text1: 'Host Zeroconf started' });
     zeroconf.publishService(
       'http',           // type
       'tcp',            // protocol
@@ -47,12 +52,15 @@ export default function HostDashboard() {
       42424,            // port (number)
       { roomId: roomId || '' } // txt record
     );
+    Toast.show({ type: 'info', text1: 'Service published' });
     console.log('Zeroconf service published for room:', roomId);
     // Listen for participant join and submit messages
     zeroconf.on('found', (service: any) => {
       if (!service?.txt?.message) return;
       try {
         const msg = JSON.parse(service.txt.message);
+        // Show ToastAndroid for any received message
+        Toast.show({ type: 'info', text1: `P2P: ${JSON.stringify(msg)}` });
         if (msg.type === 'join') {
           setParticipants((prev: Participant[]) => {
             if (prev.some(p => p.id === msg.id)) return prev;
@@ -79,6 +87,7 @@ export default function HostDashboard() {
     });
     // Clean up
     return () => {
+      Toast.show({ type: 'info', text1: 'Host Zeroconf stopped' });
       zeroconf.stop();
     };
   }, [roomId, setRoomId, round]);

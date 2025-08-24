@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import Toast from 'react-native-toast-message';
 import { useRouter } from 'expo-router';
 import Zeroconf from 'react-native-zeroconf';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
@@ -17,7 +18,7 @@ function EstimateBoard() {
   const [canEstimate, setCanEstimate] = useState(false);
   const [estimationSubmitted, setEstimationSubmitted] = useState(false);
   const [round, setRound] = useState(1);
-  const [participants, setParticipants] = useState<{id: string, name: string}[]>([]);
+  const [participants, setParticipants] = useState<{ id: string, name: string }[]>([]);
   const zeroconfRef = useRef<any>(null);
 
   // Helper functions to reduce nesting in useEffect
@@ -32,10 +33,13 @@ function EstimateBoard() {
   };
 
   // Discover host by roomId using Zeroconf and listen for round events
+  // const __DEV__ = process.env.NODE_ENV !== 'production';
+
   useEffect(() => {
     if (!roomId) return;
     const zeroconf = new Zeroconf();
     zeroconfRef.current = zeroconf;
+    Toast.show({ type: 'info', text1: 'Participant Zeroconf started' });
     const handleResolved = (service: any) => {
       if (service.txt?.roomId === roomId) {
         setHostFound(true);
@@ -48,6 +52,8 @@ function EstimateBoard() {
       if (service.txt?.message) {
         try {
           const msg = JSON.parse(service.txt.message);
+          // Show ToastAndroid for any received message
+          Toast.show({ type: 'info', text1: `P2P: ${JSON.stringify(msg)}` });
           if (msg.type === 'start-round') {
             setRound(msg.round);
             setCanEstimate(true);
@@ -57,12 +63,14 @@ function EstimateBoard() {
           if (msg.type === 'participants') {
             setParticipants(msg.participants);
           }
-        } catch {}
+        } catch { }
       }
     });
     zeroconf.scan('http', 'tcp', 'local.');
+    Toast.show({ type: 'info', text1: 'Scanning for host' });
     // Broadcast join message
     setTimeout(() => {
+      Toast.show({ type: 'info', text1: 'Broadcasting join message' });
       zeroconf.publishService(
         'http',
         'tcp',
@@ -76,6 +84,7 @@ function EstimateBoard() {
       );
     }, 1000);
     return () => {
+      Toast.show({ type: 'info', text1: 'Participant Zeroconf stopped' });
       zeroconf.stop();
       zeroconf.removeDeviceListeners();
     };
