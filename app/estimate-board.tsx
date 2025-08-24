@@ -5,6 +5,7 @@ import Zeroconf from 'react-native-zeroconf';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useUser } from '../contexts/UserContext';
+import { useWebRTC } from '../contexts/WebRTCContext';
 
 const FIB_NUMBERS = [0, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89];
 
@@ -20,6 +21,7 @@ function EstimateBoard() {
   const [round, setRound] = useState(1);
   const [participants, setParticipants] = useState<{ id: string, name: string }[]>([]);
   const zeroconfRef = useRef<any>(null);
+  const { joinHost, sendMessage, lastMessage, isConnected } = useWebRTC();
 
   // Helper functions to reduce nesting in useEffect
   const startEstimation = () => {
@@ -35,77 +37,69 @@ function EstimateBoard() {
   // Discover host by roomId using Zeroconf and listen for round events
   // const __DEV__ = process.env.NODE_ENV !== 'production';
 
+  // WebRTC Participant: Discover host offer via Zeroconf, then join
+  // Debug: Log when component mounts
+  useEffect(() => {
+    Toast.show({ type: 'info', text1: '[Debug] EstimateBoard mounted' });
+    return () => {
+      Toast.show({ type: 'info', text1: '[Debug] EstimateBoard unmounted' });
+    };
+  }, []);
+
   useEffect(() => {
     if (!roomId) return;
     const zeroconf = new Zeroconf();
     zeroconfRef.current = zeroconf;
-    Toast.show({ type: 'info', text1: 'Participant Zeroconf started' });
-    const handleResolved = (service: any) => {
-      if (service.txt?.roomId === roomId) {
-        setHostFound(true);
-        setTimeout(connectToHost, 1000);
-      }
-    };
-    zeroconf.on('resolved', handleResolved);
-    // Listen for round start messages and participant list updates
     zeroconf.on('found', (service: any) => {
-      if (service.txt?.message) {
+      if (service.txt?.offer) {
         try {
-          const msg = JSON.parse(service.txt.message);
-          // Show ToastAndroid for any received message
-          Toast.show({ type: 'info', text1: `P2P: ${JSON.stringify(msg)}` });
-          if (msg.type === 'start-round') {
-            setRound(msg.round);
-            setCanEstimate(true);
-            setEstimationSubmitted(false);
-            setSelected(null);
-          }
-          if (msg.type === 'participants') {
-            setParticipants(msg.participants);
-          }
+          const offer = JSON.parse(service.txt.offer);
+          joinHost(offer);
+          setHostFound(true);
+          Toast.show({ type: 'info', text1: '[Debug] startEstimation called' });
+          setCanEstimate(true);
+          Toast.show({ type: 'success', text1: 'Connected to host via WebRTC' });
         } catch { }
       }
+      Toast.show({ type: 'info', text1: '[Debug] connectToHost called' });
+      setConnected(true);
     });
     zeroconf.scan('http', 'tcp', 'local.');
     Toast.show({ type: 'info', text1: 'Scanning for host' });
-    // Broadcast join message
-    setTimeout(() => {
-      Toast.show({ type: 'info', text1: 'Broadcasting join message' });
-      zeroconf.publishService(
-        'http',
-        'tcp',
-        'local.',
-        name || 'participant',
-        42425,
-        {
-          roomId,
-          message: JSON.stringify({ type: 'join', id: name || 'participant', name: name || 'participant' })
-        }
-      );
-    }, 1000);
     return () => {
-      Toast.show({ type: 'info', text1: 'Participant Zeroconf stopped' });
       zeroconf.stop();
       zeroconf.removeDeviceListeners();
     };
   }, [roomId, name]);
 
+  // Listen for messages from host via WebRTC
+  useEffect(() => {
+    if (!lastMessage) return;
+    Toast.show({ type: 'info', text1: '[Debug] Zeroconf found event' });
+    try {
+      const msg = typeof lastMessage === 'string' ? JSON.parse(lastMessage) : lastMessage;
+      if (msg.type === 'start-round') {
+        setRound(msg.round);
+        setCanEstimate(true);
+        setEstimationSubmitted(false);
+        setSelected(null);
+        Toast.show({ type: 'success', text1: `New round started: ${msg.round}` });
+      }
+    } catch (e) {
+      Toast.show({ type: 'error', text1: 'Invalid message received', text2: String(e) });
+    }
+  }, [lastMessage]);
+
+  const handleSelect = (num: number) => {
+    Toast.show({ type: 'info', text1: `[Debug] handleSelect: ${num}` });
+    setSelected(num);
+  };
+
   const handleSubmit = () => {
-    setEstimationSubmitted(true);
-    setCanEstimate(false);
-    // Send submission to host (simulate by updating Zeroconf TXT record)
-    if (zeroconfRef.current) {
-      zeroconfRef.current.publishService(
-        'http',
-        'tcp',
-        'local.',
-        name || 'participant',
-        42425,
-        {
-          roomId,
-          message: JSON.stringify({ type: 'submit', round, participantId: name || 'participant', points: selected })
-        }
-      );
+    Toast.show({ type: 'info', text1: '[Debug] handleSubmit called' });
+    if (selected !== null && canEstimate && !estimationSubmitted) {
+      sendMessage({ type: 'estimate', value: selected });
+      setEstimationSubmitted(true);
       Toast.show({ type: 'success', text1: `Submitted estimate: ${selected}` });
     }
   };
@@ -170,7 +164,7 @@ function EstimateBoard() {
                         justifyContent: 'center',
                       },
                     ]}
-                    onPress={() => setSelected(num)}
+                    onPress={() => handleSelect(num)}
                     disabled={!canEstimate || estimationSubmitted}
                   >
                     <Text style={{

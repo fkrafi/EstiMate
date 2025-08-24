@@ -3,6 +3,7 @@ import Toast from 'react-native-toast-message';
 import { useRouter } from 'expo-router';
 import Zeroconf from 'react-native-zeroconf';
 import { useUser } from '../contexts/UserContext';
+import { useWebRTC } from '../contexts/WebRTCContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
@@ -25,83 +26,66 @@ export default function HostDashboard() {
   const [round, setRound] = useState<number>(1);
   const [canStartRound, setCanStartRound] = useState<boolean>(true);
   const zeroconfRef = useRef<any>(null);
+  const { startHost, sendMessage, lastMessage, localOffer, isConnected } = useWebRTC();
 
   // const __DEV__ = process.env.NODE_ENV !== 'production';
 
+  // WebRTC Host: Start connection and publish offer via Zeroconf for signaling
   useEffect(() => {
     if (!roomId) {
       Toast.show({ type: 'info', text1: 'Generating new roomId' });
       setRoomId(generateRoomId());
     }
-    // Always ensure participants are initialized
     setParticipants((prev: Participant[]) => {
       if (!prev || prev.length === 0) return [];
       return prev;
     });
-    // Advertise this device as a host using Bonjour/mDNS
+    startHost();
+    // Use Zeroconf to publish the offer for signaling
     const zeroconf = new Zeroconf();
     zeroconfRef.current = zeroconf;
-    Toast.show({ type: 'info', text1: 'Host Zeroconf started' });
     zeroconf.publishService(
-      'http',           // type
-      'tcp',            // protocol
-      'local.',         // domain
-      'estimate',       // name
-      42424,            // port (number)
-      { roomId: roomId || '' } // txt record
+      'http',
+      'tcp',
+      'local.',
+      'estimate',
+      42424,
+      { roomId: roomId || '', offer: localOffer ? JSON.stringify(localOffer) : '' }
     );
-    Toast.show({ type: 'info', text1: 'Service published' });
-    console.log('Zeroconf service published for room:', roomId);
-    // Listen for participant join and submit messages
+    // Listen for answer from participant
     zeroconf.on('found', (service: any) => {
-      if (!service?.txt?.message) return;
-      try {
-        const msg = JSON.parse(service.txt.message);
-        // Show ToastAndroid for any received message
-        Toast.show({ type: 'info', text1: `P2P: ${JSON.stringify(msg)}` });
-        if (msg.type === 'join') {
-          Toast.show({ type: 'success', text1: `Participant joined: ${msg.name}` });
-        }
-        if (msg.type === 'submit') {
-          Toast.show({ type: 'success', text1: `Received estimate from: ${msg.participantId}, points: ${msg.points}` });
-        }
-        if (msg.type === 'join') {
-          setParticipants((prev: Participant[]) => {
-            if (prev.some(p => p.id === msg.id)) return prev;
-            return [...prev, { id: msg.id, name: msg.name, points: -1 }];
-          });
-          // Broadcast updated participants list to all
-          zeroconf.publishService(
-            'http',
-            'tcp',
-            'local.',
-            'estimate',
-            42424,
-            { roomId: roomId || '', message: JSON.stringify({ type: 'participants', participants }) }
-          );
-        }
-        if (msg.type === 'submit' && msg.round === round) {
-          setParticipants((prev: Participant[]) => prev.map((p: Participant) =>
-            p.id === msg.participantId ? { ...p, points: msg.points } : p
-          ));
-          // Check if all participants have submitted
-          setTimeout(() => {
-            if (participants.length > 0 && participants.every((p: Participant) => p.points !== -1)) {
-              Toast.show({ type: 'success', text1: 'All participants have submitted!' });
-            }
-          }, 500);
-        }
-      } catch (e) {
-        Toast.show({ type: 'error', text1: 'Invalid message received', text2: String(e) });
-        console.warn('Invalid message', e);
+      if (service?.txt?.answer) {
+        // In a real app, you would setRemoteDescription(answer) here
+        Toast.show({ type: 'success', text1: 'Received answer from participant' });
       }
     });
-    // Clean up
     return () => {
-      Toast.show({ type: 'info', text1: 'Host Zeroconf stopped' });
       zeroconf.stop();
     };
-  }, [roomId, setRoomId, round]);
+  }, [roomId, setRoomId, localOffer]);
+
+  // Listen for messages from participants via WebRTC
+  useEffect(() => {
+    if (!lastMessage) return;
+    try {
+      const msg = typeof lastMessage === 'string' ? JSON.parse(lastMessage) : lastMessage;
+      if (msg.type === 'join') {
+        setParticipants((prev: Participant[]) => {
+          if (prev.some(p => p.id === msg.id)) return prev;
+          return [...prev, { id: msg.id, name: msg.name, points: -1 }];
+        });
+        Toast.show({ type: 'success', text1: `Participant joined: ${msg.name}` });
+      }
+      if (msg.type === 'submit' && msg.round === round) {
+        setParticipants((prev: Participant[]) => prev.map((p: Participant) =>
+          p.id === msg.participantId ? { ...p, points: msg.points } : p
+        ));
+        Toast.show({ type: 'success', text1: `Received estimate from: ${msg.participantId}, points: ${msg.points}` });
+      }
+    } catch (e) {
+      Toast.show({ type: 'error', text1: 'Invalid message received', text2: String(e) });
+    }
+  }, [lastMessage, round]);
 
   // Enable next round only when all participants have submitted (points !== -1)
   useEffect(() => {
@@ -120,17 +104,8 @@ export default function HostDashboard() {
     setRound((r: number) => r + 1);
     setCanStartRound(false);
     Toast.show({ type: 'info', text1: `Starting new round: ${round + 1}` });
-    // Broadcast start round message
-    if (zeroconfRef.current) {
-      zeroconfRef.current.publishService(
-        'http',
-        'tcp',
-        'local.',
-        'estimate',
-        42424,
-        { roomId: roomId || '', message: JSON.stringify({ type: 'start-round', round: round + 1 }) }
-      );
-    }
+    // Broadcast start round message via WebRTC
+    sendMessage({ type: 'start-round', round: round + 1 });
   };
 
   const displayRoomId = roomId || '--------';
