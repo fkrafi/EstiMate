@@ -1,17 +1,23 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { useRouter } from 'expo-router';
 import Zeroconf from 'react-native-zeroconf';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useUser } from '../contexts/UserContext';
 
 const FIB_NUMBERS = [0, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89];
 
-export default function EstimateBoard() {
-  const { name, roomId } = useUser();
+
+function EstimateBoard() {
+  const { name, roomId, setRoomId } = useUser();
+  const router = useRouter();
   const [selected, setSelected] = useState<number | null>(null);
   const [hostFound, setHostFound] = useState(false);
   const [connected, setConnected] = useState(false);
   const [canEstimate, setCanEstimate] = useState(false);
   const [estimationSubmitted, setEstimationSubmitted] = useState(false);
+  const [round, setRound] = useState(1);
+  const zeroconfRef = useRef<any>(null);
 
   // Helper functions to reduce nesting in useEffect
   const startEstimation = () => {
@@ -24,30 +30,33 @@ export default function EstimateBoard() {
     setTimeout(startEstimation, 1000);
   };
 
-  // Discover host by roomId using Zeroconf
+  // Discover host by roomId using Zeroconf and listen for round events
   useEffect(() => {
     if (!roomId) return;
     const zeroconf = new Zeroconf();
+    zeroconfRef.current = zeroconf;
     const handleResolved = (service: any) => {
-      console.log('Resolved ::', service);
-      // Show as toast instead of console.log
-      if (
-        typeof global !== 'undefined' &&
-        (global as any)?.ToastAndroid
-      ) {
-        (global as any).ToastAndroid.show(
-          `Resolved: ${JSON.stringify(service)}`,
-          (global as any).ToastAndroid.SHORT
-        );
-      }
       if (service.txt?.roomId === roomId) {
         setHostFound(true);
-        
-        // Simulate connection after discovery
         setTimeout(connectToHost, 1000);
       }
     };
     zeroconf.on('resolved', handleResolved);
+    // Listen for round start messages (simulate via found event for demo)
+    zeroconf.on('found', (service: any) => {
+      if (!service?.txt?.message) return;
+      try {
+        const msg = JSON.parse(service.txt.message);
+        if (msg.type === 'start-round') {
+          setRound(msg.round);
+          setCanEstimate(true);
+          setEstimationSubmitted(false);
+          setSelected(null);
+        }
+      } catch (e) {
+        // ignore
+      }
+    });
     zeroconf.scan('http', 'tcp', 'local.');
     return () => {
       zeroconf.stop();
@@ -58,18 +67,36 @@ export default function EstimateBoard() {
   const handleSubmit = () => {
     setEstimationSubmitted(true);
     setCanEstimate(false);
-    // Simulate host sending a new round after 5 seconds
-    setTimeout(() => {
-      setEstimationSubmitted(false);
-      setSelected(null);
-      setCanEstimate(true);
-    }, 5000);
+    // Send submission to host (simulate by updating Zeroconf TXT record)
+    if (zeroconfRef.current) {
+      zeroconfRef.current.publishService(
+        'http',
+        'tcp',
+        'local.',
+        name || 'participant',
+        42425,
+        {
+          roomId,
+          submission: JSON.stringify({ type: 'submit', round, participantId: name || 'participant', points: selected })
+        }
+      );
+    }
   };
 
   return (
     <View style={styles.container}>
       <View style={styles.card}>
+        <Pressable
+          style={{ position: 'absolute', top: 16, right: 16, zIndex: 10, backgroundColor: '#eee', borderRadius: 16, padding: 6 }}
+          onPress={() => {
+            setRoomId('');
+            router.replace('/select-profile');
+          }}
+        >
+          <MaterialCommunityIcons name="exit-to-app" size={22} color="#333" />
+        </Pressable>
         <Text style={styles.header}>Estimation Board</Text>
+        <Text style={styles.selectLabel}>Round: <Text style={styles.bold}>{round}</Text></Text>
         <Text style={styles.greeting}>Hello, <Text style={styles.bold}>{name || 'Guest'}</Text>!</Text>
         <Text style={styles.selectLabel}>Room ID: <Text style={styles.bold}>{roomId || 'None'}</Text></Text>
         {!hostFound && <Text style={{ color: '#888', marginBottom: 8 }}>Searching for host...</Text>}
@@ -138,8 +165,9 @@ export default function EstimateBoard() {
       </View>
     </View>
   );
-
 }
+
+export default EstimateBoard;
 
 const styles = StyleSheet.create({
   container: {

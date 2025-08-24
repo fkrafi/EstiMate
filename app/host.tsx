@@ -1,16 +1,13 @@
 
-import { useEffect, useState } from 'react';
+
+import { useEffect, useRef, useState } from 'react';
+import { useRouter } from 'expo-router';
 import Zeroconf from 'react-native-zeroconf';
 import { useUser } from '../contexts/UserContext';
-
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-const INITIAL_PARTICIPANTS = [
-  { id: '1', name: 'Alice', points: 0 },
-  { id: '2', name: 'Bob', points: 0 },
-  { id: '3', name: 'Charlie', points: 0 },
-];
+type Participant = { id: string; name: string; points: number };
 
 function generateRoomId() {
   // 8-char alphanumeric
@@ -24,17 +21,24 @@ function generateRoomId() {
 
 export default function HostDashboard() {
   const { roomId, setRoomId } = useUser();
-  const [participants, setParticipants] = useState(INITIAL_PARTICIPANTS);
-  const [round, setRound] = useState(1);
-  const [canStartRound, setCanStartRound] = useState(true);
-
+  const router = useRouter();
+  const [participants, setParticipants] = useState<Participant[]>([]);
+  const [round, setRound] = useState<number>(1);
+  const [canStartRound, setCanStartRound] = useState<boolean>(true);
+  const zeroconfRef = useRef<any>(null);
 
   useEffect(() => {
     if (!roomId) {
       setRoomId(generateRoomId());
     }
+    // Always ensure participants are initialized
+    setParticipants((prev: Participant[]) => {
+      if (!prev || prev.length === 0) return [];
+      return prev;
+    });
     // Advertise this device as a host using Bonjour/mDNS
     const zeroconf = new Zeroconf();
+    zeroconfRef.current = zeroconf;
     zeroconf.publishService(
       'http',           // type
       'tcp',            // protocol
@@ -44,24 +48,61 @@ export default function HostDashboard() {
       { roomId: roomId || '' } // txt record
     );
     console.log('Zeroconf service published for room:', roomId);
+    // Listen for participant submissions (simulate via found event for demo)
+    zeroconf.on('found', (service: any) => {
+      if (!service?.txt?.submission) return;
+      try {
+        const msg = JSON.parse(service.txt.submission);
+        if (msg.type === 'submit' && msg.round === round) {
+          setParticipants((prev: Participant[]) => prev.map((p: Participant) =>
+            p.id === msg.participantId ? { ...p, points: msg.points } : p
+          ));
+        }
+      } catch (e) {
+        console.warn('Invalid submission message', e);
+      }
+    });
     // Clean up
     return () => {
       zeroconf.stop();
     };
-  }, [roomId, setRoomId]);
+  }, [roomId, setRoomId, round]);
 
-  // Simulate receiving estimations from participants
+  // Enable next round only when all participants have submitted (points !== -1)
   useEffect(() => {
-    if (!canStartRound && participants.every(p => p.points > 0)) {
+    if (!canStartRound && participants.length > 0 && participants.every((p: Participant) => p.points !== -1)) {
       setCanStartRound(true);
     }
   }, [participants, canStartRound]);
+
+  // Reset points for new round
+  const startNewRound = () => {
+    setParticipants((prev: Participant[]) => {
+      if (!prev || prev.length === 0) return [];
+      return prev.map((p: Participant) => ({ ...p, points: -1 }));
+    });
+    setRound((r: number) => r + 1);
+    setCanStartRound(false);
+    // Broadcast start round message
+    if (zeroconfRef.current) {
+      zeroconfRef.current.send(JSON.stringify({ type: 'start-round', round: round + 1 }));
+    }
+  };
 
   const displayRoomId = roomId || '--------';
 
   return (
     <View style={styles.container}>
       <View style={styles.card}>
+        <TouchableOpacity
+          style={{ position: 'absolute', top: 16, right: 16, zIndex: 10, backgroundColor: '#eee', borderRadius: 16, padding: 6 }}
+          onPress={() => {
+            setRoomId('');
+            router.replace('/select-profile');
+          }}
+        >
+          <MaterialCommunityIcons name="exit-to-app" size={22} color="#333" />
+        </TouchableOpacity>
         <View style={styles.headerRow}>
           <MaterialCommunityIcons name="crown" size={28} color="#FFD700" style={{ marginRight: 8 }} />
           <Text style={styles.header}>Host Dashboard</Text>
@@ -94,7 +135,11 @@ export default function HostDashboard() {
               <MaterialCommunityIcons name="account" size={20} color="#555" style={{ marginRight: 8 }} />
               <Text style={styles.participantName}>{item.name}</Text>
               <View style={{ flex: 1 }} />
-              <Text style={{ fontSize: 14, color: '#888' }}>{item.points}</Text>
+              {item.points === -1 ? (
+                <MaterialCommunityIcons name="timer-sand" size={20} color="#ff9800" style={{ marginRight: 4 }} />
+              ) : (
+                <Text style={{ fontSize: 14, color: '#888' }}>{item.points}</Text>
+              )}
             </View>
           )}
           style={styles.participantsList}
@@ -116,13 +161,7 @@ export default function HostDashboard() {
           >
             <TouchableOpacity
               disabled={!canStartRound}
-              onPress={() => {
-                // Simulate sending notification to participants to start estimation
-                setParticipants(participants.map(p => ({ ...p, points: 0 })));
-                setRound(round + 1);
-                setCanStartRound(false);
-                // In a real app, send a signal to all participants here
-              }}
+              onPress={startNewRound}
               style={{
                 alignItems: 'center',
                 width: '100%',
@@ -145,7 +184,8 @@ export default function HostDashboard() {
       </View>
     </View>
   );
-}
+};
+
 
 const styles = StyleSheet.create({
   container: {
