@@ -85,7 +85,14 @@ export default function HostDashboard() {
     setCanStartRound(false);
     // Broadcast start round message
     if (zeroconfRef.current) {
-      zeroconfRef.current.send(JSON.stringify({ type: 'start-round', round: round + 1 }));
+      zeroconfRef.current.publishService(
+        'http',
+        'tcp',
+        'local.',
+        'estimate',
+        42424,
+        { roomId: roomId || '', message: JSON.stringify({ type: 'start-round', round: round + 1 }) }
+      );
     }
   };
 

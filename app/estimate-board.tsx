@@ -103,6 +103,13 @@ function EstimateBoard() {
         {hostFound && !connected && <Text style={{ color: '#888', marginBottom: 8 }}>Connecting to host...</Text>}
         {connected && !canEstimate && <Text style={{ color: '#888', marginBottom: 8 }}>Waiting for host to start estimation...</Text>}
         {connected && canEstimate && <Text style={{ color: '#4caf50', marginBottom: 8 }}>You can estimate now!</Text>}
+        <Text style={styles.selectLabel}>Connected Participants</Text>
+        <View style={{ flexDirection: 'row', marginBottom: 8 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: 12 }}>
+            <MaterialCommunityIcons name="account" size={20} color="#555" style={{ marginRight: 4 }} />
+            <Text style={styles.participantName}>{name || 'You'}</Text>
+          </View>
+        </View>
         <Text style={styles.selectLabel}>Select your estimation</Text>
         <View style={styles.fibGrid}>
           {Array.from({ length: Math.ceil(FIB_NUMBERS.length / 4) }).map((_, rowIdx) => {
@@ -260,5 +267,10 @@ const styles = StyleSheet.create({
   },
   buttonPressed: {
     opacity: 0.8,
+  },
+  participantName: {
+    fontSize: 16,
+    color: '#333',
+    fontWeight: '500',
   },
 });
