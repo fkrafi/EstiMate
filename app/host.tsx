@@ -48,18 +48,33 @@ export default function HostDashboard() {
       { roomId: roomId || '' } // txt record
     );
     console.log('Zeroconf service published for room:', roomId);
-    // Listen for participant submissions (simulate via found event for demo)
+    // Listen for participant join and submit messages
     zeroconf.on('found', (service: any) => {
-      if (!service?.txt?.submission) return;
+      if (!service?.txt?.message) return;
       try {
-        const msg = JSON.parse(service.txt.submission);
+        const msg = JSON.parse(service.txt.message);
+        if (msg.type === 'join') {
+          setParticipants((prev: Participant[]) => {
+            if (prev.some(p => p.id === msg.id)) return prev;
+            return [...prev, { id: msg.id, name: msg.name, points: -1 }];
+          });
+          // Broadcast updated participants list to all
+          zeroconf.publishService(
+            'http',
+            'tcp',
+            'local.',
+            'estimate',
+            42424,
+            { roomId: roomId || '', message: JSON.stringify({ type: 'participants', participants }) }
+          );
+        }
         if (msg.type === 'submit' && msg.round === round) {
           setParticipants((prev: Participant[]) => prev.map((p: Participant) =>
             p.id === msg.participantId ? { ...p, points: msg.points } : p
           ));
         }
       } catch (e) {
-        console.warn('Invalid submission message', e);
+        console.warn('Invalid message', e);
       }
     });
     // Clean up

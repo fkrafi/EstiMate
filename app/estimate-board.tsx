@@ -17,6 +17,7 @@ function EstimateBoard() {
   const [canEstimate, setCanEstimate] = useState(false);
   const [estimationSubmitted, setEstimationSubmitted] = useState(false);
   const [round, setRound] = useState(1);
+  const [participants, setParticipants] = useState<{id: string, name: string}[]>([]);
   const zeroconfRef = useRef<any>(null);
 
   // Helper functions to reduce nesting in useEffect
@@ -42,27 +43,43 @@ function EstimateBoard() {
       }
     };
     zeroconf.on('resolved', handleResolved);
-    // Listen for round start messages (simulate via found event for demo)
+    // Listen for round start messages and participant list updates
     zeroconf.on('found', (service: any) => {
-      if (!service?.txt?.message) return;
-      try {
-        const msg = JSON.parse(service.txt.message);
-        if (msg.type === 'start-round') {
-          setRound(msg.round);
-          setCanEstimate(true);
-          setEstimationSubmitted(false);
-          setSelected(null);
-        }
-      } catch (e) {
-        // ignore
+      if (service.txt?.message) {
+        try {
+          const msg = JSON.parse(service.txt.message);
+          if (msg.type === 'start-round') {
+            setRound(msg.round);
+            setCanEstimate(true);
+            setEstimationSubmitted(false);
+            setSelected(null);
+          }
+          if (msg.type === 'participants') {
+            setParticipants(msg.participants);
+          }
+        } catch {}
       }
     });
     zeroconf.scan('http', 'tcp', 'local.');
+    // Broadcast join message
+    setTimeout(() => {
+      zeroconf.publishService(
+        'http',
+        'tcp',
+        'local.',
+        name || 'participant',
+        42425,
+        {
+          roomId,
+          message: JSON.stringify({ type: 'join', id: name || 'participant', name: name || 'participant' })
+        }
+      );
+    }, 1000);
     return () => {
       zeroconf.stop();
       zeroconf.removeDeviceListeners();
     };
-  }, [roomId]);
+  }, [roomId, name]);
 
   const handleSubmit = () => {
     setEstimationSubmitted(true);
@@ -77,7 +94,7 @@ function EstimateBoard() {
         42425,
         {
           roomId,
-          submission: JSON.stringify({ type: 'submit', round, participantId: name || 'participant', points: selected })
+          message: JSON.stringify({ type: 'submit', round, participantId: name || 'participant', points: selected })
         }
       );
     }
@@ -105,10 +122,16 @@ function EstimateBoard() {
         {connected && canEstimate && <Text style={{ color: '#4caf50', marginBottom: 8 }}>You can estimate now!</Text>}
         <Text style={styles.selectLabel}>Connected Participants</Text>
         <View style={{ flexDirection: 'row', marginBottom: 8 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: 12 }}>
-            <MaterialCommunityIcons name="account" size={20} color="#555" style={{ marginRight: 4 }} />
-            <Text style={styles.participantName}>{name || 'You'}</Text>
-          </View>
+          {participants.length === 0 ? (
+            <Text style={{ color: '#888' }}>No participants yet</Text>
+          ) : (
+            participants.map((p, idx) => (
+              <View key={p.id} style={{ flexDirection: 'row', alignItems: 'center', marginRight: 12 }}>
+                <MaterialCommunityIcons name="account" size={20} color="#555" style={{ marginRight: 4 }} />
+                <Text style={styles.participantName}>{p.name}</Text>
+              </View>
+            ))
+          )}
         </View>
         <Text style={styles.selectLabel}>Select your estimation</Text>
         <View style={styles.fibGrid}>
