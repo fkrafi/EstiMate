@@ -3,9 +3,10 @@ import React from 'react';
 import { UserProvider } from '../contexts/UserContext';
 import Toast from 'react-native-toast-message';
 import { View, Text, StyleSheet } from 'react-native';
+import appConfig from '../app.json';
 
-const APP_NAME = 'estimate';
-const APP_VERSION = '1.0.2';
+const APP_NAME = appConfig.expo.name;
+const APP_VERSION = appConfig.expo.version;
 
 export default function Layout() {
   return (
