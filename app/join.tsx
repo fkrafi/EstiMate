@@ -2,6 +2,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { useUser } from '../contexts/UserContext';
 
 export default function JoinRoom() {
@@ -11,15 +12,18 @@ export default function JoinRoom() {
 
   const handleJoin = () => {
     setRoomId(roomIdInput);
+    Toast.show({ type: 'info', text1: `Joining room: ${roomIdInput}` });
     router.push('/estimate-board');
   };
 
   const handleScan = () => {
+    Toast.show({ type: 'info', text1: 'Navigating to QR scanner (not implemented)' });
     // Navigate to QR scanner; handle scannedRoomId via context or navigation result
     router.push('/estimate-board');
   };
 
   const handleBack = () => {
+    Toast.show({ type: 'info', text1: 'Back to Select Profile' });
     router.back();
   };
 

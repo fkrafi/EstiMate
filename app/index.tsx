@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import Toast from 'react-native-toast-message';
 import { View, Text, TextInput, Pressable, StyleSheet, Platform } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useUser } from '../contexts/UserContext';
@@ -12,6 +13,7 @@ export default function Home() {
   const handleContinue = () => {
     setName(inputName);
     router.push('/select-profile');
+  Toast.show({ type: 'info', text1: 'Navigating to Select Profile' });
   };
 
   return (

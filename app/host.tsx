@@ -1,5 +1,3 @@
-
-
 import { useEffect, useRef, useState } from 'react';
 import Toast from 'react-native-toast-message';
 import { useRouter } from 'expo-router';
@@ -62,6 +60,12 @@ export default function HostDashboard() {
         // Show ToastAndroid for any received message
         Toast.show({ type: 'info', text1: `P2P: ${JSON.stringify(msg)}` });
         if (msg.type === 'join') {
+          Toast.show({ type: 'success', text1: `Participant joined: ${msg.name}` });
+        }
+        if (msg.type === 'submit') {
+          Toast.show({ type: 'success', text1: `Received estimate from: ${msg.participantId}, points: ${msg.points}` });
+        }
+        if (msg.type === 'join') {
           setParticipants((prev: Participant[]) => {
             if (prev.some(p => p.id === msg.id)) return prev;
             return [...prev, { id: msg.id, name: msg.name, points: -1 }];
@@ -80,8 +84,15 @@ export default function HostDashboard() {
           setParticipants((prev: Participant[]) => prev.map((p: Participant) =>
             p.id === msg.participantId ? { ...p, points: msg.points } : p
           ));
+          // Check if all participants have submitted
+          setTimeout(() => {
+            if (participants.length > 0 && participants.every((p: Participant) => p.points !== -1)) {
+              Toast.show({ type: 'success', text1: 'All participants have submitted!' });
+            }
+          }, 500);
         }
       } catch (e) {
+        Toast.show({ type: 'error', text1: 'Invalid message received', text2: String(e) });
         console.warn('Invalid message', e);
       }
     });
@@ -96,6 +107,7 @@ export default function HostDashboard() {
   useEffect(() => {
     if (!canStartRound && participants.length > 0 && participants.every((p: Participant) => p.points !== -1)) {
       setCanStartRound(true);
+  Toast.show({ type: 'success', text1: `Round ${round} complete!` });
     }
   }, [participants, canStartRound]);
 
@@ -107,6 +119,7 @@ export default function HostDashboard() {
     });
     setRound((r: number) => r + 1);
     setCanStartRound(false);
+    Toast.show({ type: 'info', text1: `Starting new round: ${round + 1}` });
     // Broadcast start round message
     if (zeroconfRef.current) {
       zeroconfRef.current.publishService(

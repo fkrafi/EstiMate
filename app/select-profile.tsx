@@ -2,6 +2,7 @@ import { FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { useUser } from '../contexts/UserContext';
 
 export default function SelectProfile() {
@@ -15,14 +16,20 @@ export default function SelectProfile() {
         <Text style={styles.subtitle}>Choose your role</Text>
         <Pressable
           style={({ pressed }) => [styles.button, styles.hostButton, pressed && styles.hostButtonPressed]}
-          onPress={() => router.push('/host')}
+          onPress={() => {
+            Toast.show({ type: 'info', text1: 'Navigating to Host screen' });
+            router.push('/host');
+          }}
         >
           <MaterialCommunityIcons name="crown" size={28} color="#fff" style={styles.icon} />
           <Text style={styles.buttonText}>Start as Host</Text>
         </Pressable>
         <Pressable
           style={({ pressed }) => [styles.button, styles.participantButton, pressed && styles.participantButtonPressed]}
-          onPress={() => router.push('/join')}
+          onPress={() => {
+            Toast.show({ type: 'info', text1: 'Navigating to Join screen' });
+            router.push('/join');
+          }}
         >
           <FontAwesome5 name="theater-masks" size={28} color="#fff" style={styles.icon} />
           <Text style={styles.buttonText}>Join as Participant</Text>

@@ -106,6 +106,7 @@ function EstimateBoard() {
           message: JSON.stringify({ type: 'submit', round, participantId: name || 'participant', points: selected })
         }
       );
+      Toast.show({ type: 'success', text1: `Submitted estimate: ${selected}` });
     }
   };
 
