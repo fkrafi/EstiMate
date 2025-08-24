@@ -5,6 +5,23 @@ import { WebRTCProvider } from '../contexts/WebRTCContext';
 import Toast from 'react-native-toast-message';
 import { View, Text, StyleSheet } from 'react-native';
 import appConfig from '../app.json';
+import * as Sentry from '@sentry/react-native';
+
+Sentry.init({
+  dsn: 'https://5e479b8ec02c478eb279c2f068238bb8@o4509900505874432.ingest.us.sentry.io/4509900508758016',
+
+  // Adds more context data to events (IP address, cookies, user, etc.)
+  // For more information, visit: https://docs.sentry.io/platforms/react-native/data-management/data-collected/
+  sendDefaultPii: true,
+
+  // Configure Session Replay
+  replaysSessionSampleRate: 0.1,
+  replaysOnErrorSampleRate: 1,
+  integrations: [Sentry.mobileReplayIntegration(), Sentry.feedbackIntegration()],
+
+  // uncomment the line below to enable Spotlight (https://spotlightjs.com)
+  // spotlight: __DEV__,
+});
 
 const styles = StyleSheet.create({
   footer: {
@@ -32,7 +49,7 @@ const styles = StyleSheet.create({
 const APP_NAME = appConfig.expo.name;
 const APP_VERSION = appConfig.expo.version;
 
-export default function Layout() {
+export default Sentry.wrap(function Layout() {
   return (
     <UserProvider>
       <WebRTCProvider>
@@ -46,4 +63,4 @@ export default function Layout() {
       </WebRTCProvider>
     </UserProvider>
   );
-}
+});

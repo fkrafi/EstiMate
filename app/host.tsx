@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import * as Sentry from '@sentry/react-native';
 import Toast from 'react-native-toast-message';
 import { useRouter } from 'expo-router';
 import Zeroconf from 'react-native-zeroconf';
@@ -33,7 +34,8 @@ export default function HostDashboard() {
   // WebRTC Host: Start connection and publish offer via Zeroconf for signaling
   useEffect(() => {
     if (!roomId) {
-      Toast.show({ type: 'info', text1: 'Generating new roomId' });
+  Toast.show({ type: 'info', text1: 'Generating new roomId' });
+  Sentry.captureMessage('Generating new roomId', { level: 'info' });
       setRoomId(generateRoomId());
     }
     setParticipants((prev: Participant[]) => {
@@ -41,6 +43,13 @@ export default function HostDashboard() {
       return prev;
     });
     startHost();
+    if (!localOffer) {
+  Toast.show({ type: 'error', text1: '[Debug] localOffer is not ready, skipping Zeroconf publish.' });
+  Sentry.captureMessage('localOffer is not ready, skipping Zeroconf publish.', { level: 'error' });
+      return;
+    }
+  Toast.show({ type: 'info', text1: '[Debug] Publishing Zeroconf with offer', text2: JSON.stringify(localOffer) });
+  Sentry.captureMessage('Publishing Zeroconf with offer: ' + JSON.stringify(localOffer), { level: 'info' });
     // Use Zeroconf to publish the offer for signaling
     const zeroconf = new Zeroconf();
     zeroconfRef.current = zeroconf;
@@ -50,13 +59,14 @@ export default function HostDashboard() {
       'local.',
       'estimate',
       42424,
-      { roomId: roomId || '', offer: localOffer ? JSON.stringify(localOffer) : '' }
+      { roomId: roomId || '', offer: JSON.stringify(localOffer) }
     );
     // Listen for answer from participant
     zeroconf.on('found', (service: any) => {
       if (service?.txt?.answer) {
         // In a real app, you would setRemoteDescription(answer) here
-        Toast.show({ type: 'success', text1: 'Received answer from participant' });
+  Toast.show({ type: 'success', text1: 'Received answer from participant' });
+  Sentry.captureMessage('Received answer from participant', { level: 'info' });
       }
     });
     return () => {
@@ -74,16 +84,19 @@ export default function HostDashboard() {
           if (prev.some(p => p.id === msg.id)) return prev;
           return [...prev, { id: msg.id, name: msg.name, points: -1 }];
         });
-        Toast.show({ type: 'success', text1: `Participant joined: ${msg.name}` });
+  Toast.show({ type: 'success', text1: `Participant joined: ${msg.name}` });
+  Sentry.captureMessage(`Participant joined: ${msg.name}`, { level: 'info' });
       }
       if (msg.type === 'submit' && msg.round === round) {
         setParticipants((prev: Participant[]) => prev.map((p: Participant) =>
           p.id === msg.participantId ? { ...p, points: msg.points } : p
         ));
-        Toast.show({ type: 'success', text1: `Received estimate from: ${msg.participantId}, points: ${msg.points}` });
+  Toast.show({ type: 'success', text1: `Received estimate from: ${msg.participantId}, points: ${msg.points}` });
+  Sentry.captureMessage(`Received estimate from: ${msg.participantId}, points: ${msg.points}`, { level: 'info' });
       }
     } catch (e) {
-      Toast.show({ type: 'error', text1: 'Invalid message received', text2: String(e) });
+  Toast.show({ type: 'error', text1: 'Invalid message received', text2: String(e) });
+  Sentry.captureException(e, { tags: { section: 'host.tsx', type: 'Invalid message received' } });
     }
   }, [lastMessage, round]);
 
@@ -92,6 +105,7 @@ export default function HostDashboard() {
     if (!canStartRound && participants.length > 0 && participants.every((p: Participant) => p.points !== -1)) {
       setCanStartRound(true);
   Toast.show({ type: 'success', text1: `Round ${round} complete!` });
+  Sentry.captureMessage(`Round ${round} complete!`, { level: 'info' });
     }
   }, [participants, canStartRound]);
 
@@ -103,7 +117,8 @@ export default function HostDashboard() {
     });
     setRound((r: number) => r + 1);
     setCanStartRound(false);
-    Toast.show({ type: 'info', text1: `Starting new round: ${round + 1}` });
+  Toast.show({ type: 'info', text1: `Starting new round: ${round + 1}` });
+  Sentry.captureMessage(`Starting new round: ${round + 1}`, { level: 'info' });
     // Broadcast start round message via WebRTC
     sendMessage({ type: 'start-round', round: round + 1 });
   };

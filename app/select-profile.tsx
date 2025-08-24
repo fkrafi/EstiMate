@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Toast from 'react-native-toast-message';
+import * as Sentry from '@sentry/react-native';
 import { useUser } from '../contexts/UserContext';
 
 export default function SelectProfile() {
@@ -18,6 +19,7 @@ export default function SelectProfile() {
           style={({ pressed }) => [styles.button, styles.hostButton, pressed && styles.hostButtonPressed]}
           onPress={() => {
             Toast.show({ type: 'info', text1: 'Navigating to Host screen' });
+            Sentry.captureMessage('Navigating to Host screen', { level: 'info' });
             router.push('/host');
           }}
         >
@@ -28,6 +30,7 @@ export default function SelectProfile() {
           style={({ pressed }) => [styles.button, styles.participantButton, pressed && styles.participantButtonPressed]}
           onPress={() => {
             Toast.show({ type: 'info', text1: 'Navigating to Join screen' });
+            Sentry.captureMessage('Navigating to Join screen', { level: 'info' });
             router.push('/join');
           }}
         >

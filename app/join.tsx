@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import Toast from 'react-native-toast-message';
+import * as Sentry from '@sentry/react-native';
 import { useUser } from '../contexts/UserContext';
 
 export default function JoinRoom() {
@@ -12,18 +13,21 @@ export default function JoinRoom() {
 
   const handleJoin = () => {
     setRoomId(roomIdInput);
-    Toast.show({ type: 'info', text1: `Joining room: ${roomIdInput}` });
+  Toast.show({ type: 'info', text1: `Joining room: ${roomIdInput}` });
+  Sentry.captureMessage(`Joining room: ${roomIdInput}`, { level: 'info' });
     router.push('/estimate-board');
   };
 
   const handleScan = () => {
-    Toast.show({ type: 'info', text1: 'Navigating to QR scanner (not implemented)' });
+  Toast.show({ type: 'info', text1: 'Navigating to QR scanner (not implemented)' });
+  Sentry.captureMessage('Navigating to QR scanner (not implemented)', { level: 'info' });
     // Navigate to QR scanner; handle scannedRoomId via context or navigation result
     router.push('/estimate-board');
   };
 
   const handleBack = () => {
-    Toast.show({ type: 'info', text1: 'Back to Select Profile' });
+  Toast.show({ type: 'info', text1: 'Back to Select Profile' });
+  Sentry.captureMessage('Back to Select Profile', { level: 'info' });
     router.back();
   };
 

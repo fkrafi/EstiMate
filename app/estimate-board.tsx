@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Toast from 'react-native-toast-message';
+import * as Sentry from '@sentry/react-native';
 import { useRouter } from 'expo-router';
 import Zeroconf from 'react-native-zeroconf';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
@@ -41,8 +42,10 @@ function EstimateBoard() {
   // Debug: Log when component mounts
   useEffect(() => {
     Toast.show({ type: 'info', text1: '[Debug] EstimateBoard mounted' });
+    Sentry.captureMessage('EstimateBoard mounted', { level: 'info' });
     return () => {
       Toast.show({ type: 'info', text1: '[Debug] EstimateBoard unmounted' });
+      Sentry.captureMessage('EstimateBoard unmounted', { level: 'info' });
     };
   }, []);
 
@@ -57,18 +60,27 @@ function EstimateBoard() {
           joinHost(offer);
           setHostFound(true);
           Toast.show({ type: 'info', text1: '[Debug] startEstimation called' });
+          Sentry.captureMessage('startEstimation called', { level: 'info' });
           setCanEstimate(true);
           Toast.show({ type: 'success', text1: 'Connected to host via WebRTC' });
-        } catch { }
+          Sentry.captureMessage('Connected to host via WebRTC', { level: 'info' });
+        } catch (e) {
+          Toast.show({ type: 'error', text1: '[Debug] Error parsing offer', text2: String(e) });
+          Sentry.captureException(e, { tags: { section: 'estimate-board.tsx', type: 'Error parsing offer' } });
+        }
       }
       Toast.show({ type: 'info', text1: '[Debug] connectToHost called' });
+      Sentry.captureMessage('connectToHost called', { level: 'info' });
       setConnected(true);
     });
     zeroconf.scan('http', 'tcp', 'local.');
     Toast.show({ type: 'info', text1: 'Scanning for host' });
+    Sentry.captureMessage('Scanning for host', { level: 'info' });
     return () => {
       zeroconf.stop();
       zeroconf.removeDeviceListeners();
+      Toast.show({ type: 'info', text1: '[Debug] Zeroconf cleanup' });
+      Sentry.captureMessage('Zeroconf cleanup', { level: 'info' });
     };
   }, [roomId, name]);
 
@@ -76,6 +88,7 @@ function EstimateBoard() {
   useEffect(() => {
     if (!lastMessage) return;
     Toast.show({ type: 'info', text1: '[Debug] Zeroconf found event' });
+    Sentry.captureMessage('Zeroconf found event', { level: 'info' });
     try {
       const msg = typeof lastMessage === 'string' ? JSON.parse(lastMessage) : lastMessage;
       if (msg.type === 'start-round') {
@@ -84,23 +97,28 @@ function EstimateBoard() {
         setEstimationSubmitted(false);
         setSelected(null);
         Toast.show({ type: 'success', text1: `New round started: ${msg.round}` });
+        Sentry.captureMessage(`New round started: ${msg.round}`, { level: 'info' });
       }
     } catch (e) {
       Toast.show({ type: 'error', text1: 'Invalid message received', text2: String(e) });
+      Sentry.captureException(e, { tags: { section: 'estimate-board.tsx', type: 'Invalid message received' } });
     }
   }, [lastMessage]);
 
   const handleSelect = (num: number) => {
     Toast.show({ type: 'info', text1: `[Debug] handleSelect: ${num}` });
+    Sentry.captureMessage(`[Debug] handleSelect: ${num}`, { level: 'info' });
     setSelected(num);
   };
 
   const handleSubmit = () => {
     Toast.show({ type: 'info', text1: '[Debug] handleSubmit called' });
+    Sentry.captureMessage('[Debug] handleSubmit called', { level: 'info' });
     if (selected !== null && canEstimate && !estimationSubmitted) {
       sendMessage({ type: 'estimate', value: selected });
       setEstimationSubmitted(true);
       Toast.show({ type: 'success', text1: `Submitted estimate: ${selected}` });
+      Sentry.captureMessage(`Submitted estimate: ${selected}`, { level: 'info' });
     }
   };
 

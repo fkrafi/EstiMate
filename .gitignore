@@ -27,3 +27,4 @@ build/
 .history/
 .settings/
 *.code-workspace
+.env.local
